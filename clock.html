@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Equalizer Clock</title>
+<style>
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background: #000;
+    font-family: 'Arial', sans-serif;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Floating text before music starts */
+.floating-text {
+    position: absolute;
+    font-size: 50px;
+    font-weight: bold;
+    font-family: cursive;
+    color: #0ff;
+    text-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+    animation: floatMove 6s ease-in-out infinite alternate;
+    z-index: 0;
+}
+
+@keyframes floatMove {
+    0%   { top: 10%; left: 10%; transform: rotate(-5deg) scale(1); }
+    25%  { top: 20%; left: 70%; transform: rotate(5deg) scale(1.1); }
+    50%  { top: 50%; left: 30%; transform: rotate(-8deg) scale(1); }
+    75%  { top: 70%; left: 60%; transform: rotate(6deg) scale(1.2); }
+    100% { top: 40%; left: 80%; transform: rotate(-5deg) scale(1); }
+}
+
+/* Clock Card */
+.watch-card {
+    background: #000;
+    padding: 40px 60px;
+    border-radius: 20px;
+    margin-bottom: 280px;
+    text-align: center;
+    min-width: 280px;
+    box-shadow: 0 0 30px rgba(0,255,255,0.6);
+    z-index: 2;
+    position: relative;
+}
+
+.time {
+    font-size: 60px;
+    letter-spacing: 5px;
+    color: #0ff;
+    text-shadow: 0 0 15px #0ff, 0 0 30px #0ff;
+}
+
+.date {
+    margin-top: 15px;
+    font-size: 20px;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+}
+
+/* Equalizer fixed at bottom */
+.equalizer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4px;
+    height: 160px;
+    padding: 10px;
+    z-index: 1;
+}
+
+/* Bars */
+.bar {
+    flex: 1;
+    max-width: 12px;
+    background: linear-gradient(to top, #0ff, #00f, #f0f);
+    border-radius: 6px;
+    box-shadow: 0 0 15px #0ff, 0 0 25px #0ff;
+    transition: height 0.1s ease;
+}
+
+/* Dancing text over bars */
+.dancing-text {
+    position: absolute;
+    bottom: 180px;
+    font-size: 40px;
+    font-family: cursive;
+    font-weight: bold;
+    color: #fff;
+    display: flex;
+    gap: 5px;
+    text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+    z-index: 3;
+}
+
+.dancing-text span {
+    display: inline-block;
+    animation: dance 1s infinite;
+}
+
+.dancing-text span:nth-child(1){ animation-delay:0s; }
+.dancing-text span:nth-child(2){ animation-delay:0.1s; }
+.dancing-text span:nth-child(3){ animation-delay:0.2s; }
+.dancing-text span:nth-child(4){ animation-delay:0.3s; }
+.dancing-text span:nth-child(5){ animation-delay:0.4s; }
+.dancing-text span:nth-child(6){ animation-delay:0.5s; }
+.dancing-text span:nth-child(7){ animation-delay:0.6s; }
+
+@keyframes dance {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-20px) scale(1.2); color: #0ff; }
+}
+</style>
+</head>
+<body>
+
+<!-- Floating Text before music -->
+<div class="floating-text" id="floatingText">click me!</div>
+
+<!-- Clock -->
+<div class="watch-card">
+    <div class="time" id="time">00:00:00</div>
+    <div class="date" id="date">01 Jan 2025</div>
+</div>
+
+<!-- Equalizer -->
+<div class="equalizer" id="equalizer"></div>
+
+<!-- Dancing Text above bars -->
+<div class="dancing-text" id="dancingText" style="display:none;">
+   <span>𝒜</span><span>𝓂</span><span>𝒾</span><span>𝓉</span><span> </span><span>࿐</span><span>𝓂</span>
+</div>
+
+<audio id="bgMusic" src="Clock.mp3" loop></audio>
+
+<script>
+// Clock update
+function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    const mon = now.toLocaleString('default',{month:'short'});
+    const y = now.getFullYear();
+    document.getElementById('time').textContent = `${h}:${m}:${s}`;
+    document.getElementById('date').textContent = `${d} ${mon} ${y}`;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// Create 24 bars dynamically
+const equalizer = document.getElementById("equalizer");
+for (let i=0; i<24; i++) {
+    const bar = document.createElement("div");
+    bar.classList.add("bar");
+    equalizer.appendChild(bar);
+}
+const bars = document.querySelectorAll(".bar");
+
+// Music Equalizer
+const audio = document.getElementById("bgMusic");
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const source = audioCtx.createMediaElementSource(audio);
+const analyser = audioCtx.createAnalyser();
+source.connect(analyser);
+analyser.connect(audioCtx.destination);
+analyser.fftSize = 128;
+const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+function animateEqualizer() {
+    requestAnimationFrame(animateEqualizer);
+    analyser.getByteFrequencyData(dataArray);
+
+    bars.forEach((bar, i) => {
+        const value = dataArray[i] || 0;
+        const height = Math.max(20, value*1.5);
+        bar.style.height = height + "px";
+        const color = `hsl(${(value*3)%360}, 100%, 50%)`;
+        bar.style.background = `linear-gradient(to top, ${color}, #fff)`;
+        bar.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+    });
+}
+
+// Start after click
+document.body.addEventListener("click", () => {
+    document.getElementById("floatingText").style.display="none"; // hide background floating text
+    document.getElementById("dancingText").style.display="flex"; // show dancing text on bars
+    audioCtx.resume().then(()=>{
+        audio.play();
+        animateEqualizer();
+    });
+},{once:true});
+</script>
+
+</body>
+</html>
